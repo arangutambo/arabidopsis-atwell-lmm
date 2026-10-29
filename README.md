@@ -20,12 +20,12 @@ changes anything, and (3) four loci chosen in advance (*FLC*, *FRI*, *FT* for fl
 
 ## Reproduce
 ```bash
-micromamba create -y -f environment.yml
-bash src/00_download.sh          # AraPheno study 1, 1001 Genomes imputed SNP matrix (~330 MB), Ensembl gene coordinates
-python src/01_prepare.py         # select accessions, filter to MAF >= 5%
-python src/02_scan.py            # all 107 phenotypes, ~40 min on a laptop
-python src/03_summarise.py       # summary.json, figures
-python -m pytest                 # tests for the scan code
+micromamba create -y -f environment.yml                  # creates the env named "atwell"
+bash src/00_download.sh                                 # AraPheno study 1, 1001 Genomes imputed SNP matrix (~330 MB), Ensembl gene coordinates
+micromamba run -n atwell python src/01_prepare.py       # select accessions, filter to MAF >= 5%
+micromamba run -n atwell python src/02_scan.py          # all 107 phenotypes, ~40 min on a laptop
+micromamba run -n atwell python src/03_summarise.py     # summary.json, figures
+micromamba run -n atwell python -m pytest               # tests for the scan code
 quarto render report/report.qmd
 ```
 

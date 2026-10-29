@@ -18,6 +18,26 @@ LAB = {"ols": "OLS (no correction)", "emmax": "mixed model (all-SNP kinship)", "
 per = pd.read_csv(R / "per_phenotype.csv")
 cand = pd.read_csv(R / "candidates.csv")
 out = {"n_phenotypes": int(len(per)), "n_min": int(per.n.min()), "n_max": int(per.n.max()), "n_median": float(per.n.median())}
+
+# Dataset shapes, so the report quotes them from here rather than from typed values.
+# ATWELL_* are facts about the original paper (Atwell et al. 2010), not computed here.
+ATWELL_LINES, ATWELL_SNPS = 199, 216_130
+_g = np.load(D / "geno_union.npz")
+prev = json.load(open(R / "summary.json")) if (R / "summary.json").exists() else {}
+_h5 = D / "1001_SNP_MATRIX" / "imputed_snps_binary.hdf5"
+if _h5.exists():
+    import h5py
+    with h5py.File(_h5, "r") as f:
+        release = {"n_snps": int(f["snps"].shape[0]), "n_accessions": int(f["snps"].shape[1])}
+else:  # the matrix is large and not redistributed; reuse what a previous run recorded
+    release = prev.get("data", {}).get("release", {})
+out["data"] = {
+    "release": release,
+    "n_snps_analysed": int(_g["chrom"].shape[0]),
+    "n_accessions_analysed": int(_g["acc"].shape[0]),
+    "atwell_lines": ATWELL_LINES,
+    "atwell_snps": ATWELL_SNPS,
+}
 for m in COL:
     l = per[f"lambda_{m}"]
     out[m] = {"lambda_median": round(float(l.median()), 3), "lambda_q1": round(float(l.quantile(.25)), 3), "lambda_q3": round(float(l.quantile(.75)), 3),

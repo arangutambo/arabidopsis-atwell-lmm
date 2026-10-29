@@ -24,6 +24,10 @@ s <- fromJSON("../results/summary.json", simplifyVector = TRUE)
 per <- read.csv("../results/per_phenotype.csv")
 pairs <- read.csv("../results/candidate_pairs_empirical_p.csv")
 f2 <- function(x) formatC(x, format = "f", digits = 2)
+f3 <- function(x) formatC(x, format = "f", digits = 3)
+d <- s$data
+pv <- function(ph, gn, m) pairs[[m]][pairs$phenotype == ph & pairs$gene == gn]
+ft16 <- per[trimws(per$phenotype) == "FT16", ]
 ```
 
 # Question
@@ -38,9 +42,9 @@ This is not an attempt to "beat" the paper, which already used a mixed model; it
 
 # Data
 
-**Phenotypes.** AraPheno study 1 (the Atwell et al. phenotypes), `r s$n_phenotypes` phenotypes with `r s$n_min` to `r s$n_max` accessions each (median `r s$n_median`) after matching to genotypes. Replicate rows were averaged per accession, and each phenotype was rank-based inverse-normal transformed so that a parametric test is comparable with the paper's rank-based Wilcoxon test.
+**Phenotypes.** AraPheno study 1 (the Atwell et al. phenotypes) [@togninalli2020], `r s$n_phenotypes` phenotypes with `r s$n_min` to `r s$n_max` accessions each (median `r s$n_median`) after matching to genotypes. Replicate rows were averaged per accession, and each phenotype was rank-based inverse-normal transformed so that a parametric test is comparable with the paper's rank-based Wilcoxon test.
 
-**Genotypes.** The 1001 Genomes imputed binary SNP matrix [@alonso2016]: 10,709,949 SNPs for 1,135 accessions. **Only 137 of the 199 lines in the original paper are in this release**, so these analyses have less power than the original. SNPs with minor-allele frequency below 5% among those 137 accessions were dropped, leaving 1,826,193 SNPs, about 8 times the 216,130 SNPs in the original study. I found no licence statement for the genotype matrix, so the repository contains download scripts, not data.
+**Genotypes.** The 1001 Genomes imputed binary SNP matrix [@alonso2016]: `r format(d$release$n_snps, big.mark=",")` SNPs for `r format(d$release$n_accessions, big.mark=",")` accessions. **Only `r d$n_accessions_analysed` of the `r d$atwell_lines` lines in the original paper are in this release**, so these analyses have less power than the original. SNPs with minor-allele frequency below 5% among those `r d$n_accessions_analysed` accessions were dropped, leaving `r format(d$n_snps_analysed, big.mark=",")` SNPs, about `r round(d$n_snps_analysed / d$atwell_snps)` times the `r format(d$atwell_snps, big.mark=",")` SNPs in the original study. I found no licence statement for the genotype matrix, so the repository contains download scripts, not data.
 
 # Methods
 
@@ -75,7 +79,7 @@ Without correction, `r round(100 * s$ols$"frac_lambda_gt_1.2")`% of phenotypes h
 
 : Bonferroni-significant SNPs ($p < 2.7\times10^{-8}$) across the 107 phenotypes. SNP counts overstate independent signals because neighbouring SNPs are in LD; the last column is a rough count of independent regions.
 
-`r s$ols_hit_but_no_lmm_hit` phenotypes have at least one OLS hit and no LOCO mixed-model hit; only `r s$lmm_hit_but_no_ols_hit` has the reverse. Flowering time shows it clearly: for FT16, OLS gives $\lambda = 3.0$ and 10,737 significant SNPs spread across all five chromosomes, while the LOCO mixed model gives one (Figure 2).
+`r s$ols_hit_but_no_lmm_hit` phenotypes have at least one OLS hit and no LOCO mixed-model hit; only `r s$lmm_hit_but_no_ols_hit` has the reverse. Flowering time shows it clearly: for FT16, OLS gives $\lambda = `r f2(ft16$lambda_ols)`$ and `r format(ft16$hits_ols, big.mark=",")` significant SNPs spread across all five chromosomes, while the LOCO mixed model gives `r ifelse(ft16$hits_loco == 1, "a single one", format(ft16$hits_loco, big.mark=","))` (Figure 2).
 
 ```{r manhattan, fig.cap="FT16 (n = 134), unadjusted (top) and mixed model with LOCO kinship (bottom). Dashed line: Bonferroni threshold. Green lines: FLC, FRI, FT, DOG1.", out.width="100%"}
 include_graphics("../figures/manhattan_FT16.png")
@@ -95,13 +99,15 @@ The two mixed models give almost the same hits (`r format(s$emmax$total_hit_snps
 sig <- pairs[pairs$loco < 0.05, ]
 sig <- sig[order(sig$loco), ]
 names(sig) <- c("Trait", "Locus", "Mixed (all-SNP)", "Mixed (LOCO)", "OLS")
-kable(sig[, c("Trait", "Locus", "OLS", "Mixed (all-SNP)", "Mixed (LOCO)")], row.names = FALSE, digits = 3,
+for (cc in c("OLS", "Mixed (all-SNP)", "Mixed (LOCO)")) sig[[cc]] <- f3(sig[[cc]])
+kable(sig[, c("Trait", "Locus", "OLS", "Mixed (all-SNP)", "Mixed (LOCO)")], row.names = FALSE,
+      align = "llrrr",
       caption = "Pre-specified trait-locus pairs with window empirical p < 0.05 under the LOCO mixed model.")
 ```
 
-Of the `r s$n_candidate_pairs` pre-specified pairs, `r s$pairs_empirical_p_lt_0.05$loco` have a window empirical $p < 0.05$ under the LOCO mixed model, against about `r s$pairs_expected_by_chance` expected by chance; under OLS only `r s$pairs_empirical_p_lt_0.05$ols` do. Four of the eight are flowering traits at *FLC* (FT10, FT16, LN22, SDV), three are at *FT* (0W GH FT, FT Field, LN16) and one is at *FRI* (LN22, which also appears at *FLC*); FT22 at *FLC* just misses under LOCO (0.054); none involves *DOG1* (seed-dormancy windows: empirical $p$ from `r f2(min(pairs$loco[pairs$gene == "DOG1"]))` to `r f2(max(pairs$loco[pairs$gene == "DOG1"]))`), and the *FLC* expression phenotype does not localise on *FLC* or *FRI* (empirical $p$ `r f2(pairs$loco[pairs$phenotype == "FLC" & pairs$gene == "FLC"])` and `r f2(pairs$loco[pairs$phenotype == "FLC" & pairs$gene == "FRI"])`).
+Of the `r s$n_candidate_pairs` pre-specified pairs, `r s$pairs_empirical_p_lt_0.05$loco` have a window empirical $p < 0.05$ under the LOCO mixed model, against about `r s$pairs_expected_by_chance` expected by chance; under OLS only `r s$pairs_empirical_p_lt_0.05$ols` do. Four of the eight are flowering traits at *FLC* (FT10, FT16, LN22, SDV), three are at *FT* (0W GH FT, FT Field, LN16) and one is at *FRI* (LN22, which also appears at *FLC*); FT22 at *FLC* just misses under LOCO (`r f3(pv("FT22", "FLC", "loco"))`); none involves *DOG1* (seed-dormancy windows: empirical $p$ from `r f2(min(pairs$loco[pairs$gene == "DOG1"]))` to `r f2(max(pairs$loco[pairs$gene == "DOG1"]))`), and the *FLC* expression phenotype does not localise on *FLC* or *FRI* (empirical $p$ `r f2(pairs$loco[pairs$phenotype == "FLC" & pairs$gene == "FLC"])` and `r f2(pairs$loco[pairs$phenotype == "FLC" & pairs$gene == "FRI"])`).
 
-Two cautions apply. First, the flowering phenotypes are strongly correlated with each other [@atwell2010], so these eight pairs are not eight independent confirmations. Second, after a Bonferroni correction over 38 pairs (threshold 0.0013), only FT10--*FLC* under the all-SNP kinship ($p = `r formatC(pairs$emmax[pairs$phenotype == "FT10" & pairs$gene == "FLC"], format = "f", digits = 3)`$, borderline) would survive; under LOCO it is `r formatC(pairs$loco[pairs$phenotype == "FT10" & pairs$gene == "FLC"], format = "f", digits = 3)`, which does not. The evidence is suggestive for *FLC* and *FT* in flowering traits, and absent for *DOG1* at this sample size.
+Two cautions apply. First, the flowering phenotypes are strongly correlated with each other [@atwell2010], so these eight pairs are not eight independent confirmations. Second, after a Bonferroni correction over `r s$n_candidate_pairs` pairs (threshold `r f3(0.05 / s$n_candidate_pairs)`), only FT10--*FLC* under the all-SNP kinship ($p = `r f3(pv("FT10", "FLC", "emmax"))`$, borderline) would survive; under LOCO it is `r f3(pv("FT10", "FLC", "loco"))`, which does not. The evidence is suggestive for *FLC* and *FT* in flowering traits, and absent for *DOG1* at this sample size.
 
 ## Heritability estimates
 
@@ -121,6 +127,6 @@ The REML estimates of $\sigma_g^2 / (\sigma_g^2 + \sigma_e^2)$ have a median of 
 
 # Provenance and reproducibility
 
-All data are public (AraPheno, the 1001 Genomes, Ensembl Plants for gene coordinates). Run `src/00_download.sh`, then `src/01_prepare.py`, `src/02_scan.py` (about 40 minutes on a laptop) and `src/03_summarise.py`, then render this report. Tests: `python -m pytest`. The code and report were written and run with the assistance of Claude Code (Anthropic); I am responsible for checking and understanding the results. No part derives from university coursework or assessed material.
+All data are public (AraPheno, the 1001 Genomes, Ensembl Plants for gene coordinates). Run `src/00_download.sh`, then `src/01_prepare.py`, `src/02_scan.py` (about 40 minutes on a laptop) and `src/03_summarise.py`, then render this report. Tests: `micromamba run -n atwell python -m pytest` (4 tests: OLS against `scipy`, the rotated GLS against a brute-force computation, REML recovery of a known variance ratio, and that the mixed model controls structure OLS does not). The code and report were written and run with the assistance of Claude Code (Anthropic); I am responsible for checking and understanding the results. No part derives from university coursework or assessed material.
 
 # References

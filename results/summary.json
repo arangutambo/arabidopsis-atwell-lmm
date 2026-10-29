@@ -3,6 +3,16 @@
   "n_min": 51,
   "n_max": 135,
   "n_median": 92.0,
+  "data": {
+    "release": {
+      "n_snps": 10709949,
+      "n_accessions": 1135
+    },
+    "n_snps_analysed": 1826193,
+    "n_accessions_analysed": 137,
+    "atwell_lines": 199,
+    "atwell_snps": 216130
+  },
   "ols": {
     "lambda_median": 1.46,
     "lambda_q1": 1.213,

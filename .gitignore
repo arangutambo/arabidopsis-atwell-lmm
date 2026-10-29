@@ -1,0 +1,7 @@
+data/
+__pycache__/
+.pytest_cache/
+.quarto/
+report/*_files/
+*.npz
+.DS_Store
